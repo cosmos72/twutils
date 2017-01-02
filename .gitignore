@@ -3,4 +3,6 @@
 *.a
 *.lo
 *.la
-autom4te.cache
+*.cache
+*.log
+config.status
