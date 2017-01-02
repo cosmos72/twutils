@@ -1,0 +1,54 @@
+Mon Feb 19 10:12:05 2001  Massimiliano Ghilardi <max@linuz.sns.it>
+
+	* ported from KDE to libTw and removed a lot of non-applicable stuff
+	(mainly fonts). Renamed from `kcalc' to `twkalc'.
+
+Mon Nov 16 18:05:01 1998  Mario Weilguni <mweilguni@kde.org>
+
+	* the standard deviation was completly wrong. Fixed.
+	* the population standard deviation had the same fault. Fixed.
+
+Mon Nov 16 18:05:01 1998  Mario Weilguni <mweilguni@kde.org>
+
+	* calculation the facturial of a too large number was delayed,
+	even though infinity was already reached. Now kcalc stops
+	calculation if infinity is reached and displays an error
+
+Mon May  4 06:28:09 1998  Bernd Johannes Wuebben  <wuebben@math.cornell.edu>
+
+	* Added the comma key as an accelerator for '.'
+
+Sat Apr 18 16:26:52 1998  Bernd Johannes Wuebben  <wuebben@math.cornell.edu>
+
+	* Some inverse functions didn't compute right. Wonder who broke them.
+
+Sun Feb  8 16:11:34 1998  Bernd Johannes Wuebben  <wuebben@math.cornell.edu>
+
+	* removed a compiler warning
+
+Sat Nov 22 14:30:37 1997  Bernd Johannes Wuebben  <wuebben@petit.cornell.edu>
+
+	* stats.cpp: fixed some bugs in the stats module
+	  mean should now be correct
+	  std  shoudl now be correct too.
+
+Sat Sep 20 23:59:30 1997  Bernd Johannes Wuebben  <wuebben@petit.cornell.edu>
+
+	* kcalc.cpp: Added statistical functions
+
+Mon Sep 15 00:34:58 1997  Bernd Johannes Wuebben  <wuebben@petit.cornell.edu>
+
+	* added cut and pasted functionality
+	* implemented EE 
+	* implemented result stack
+	* implemented precision and fixed precision 
+	* added key bindings
+	* tooltips
+	* added configuration dialog
+	
+
+Sat Aug  2 22:06:59 1997  Bernd Johannes Wuebben  <wuebben@petit.cornell.edu>
+
+	* kcalc.h: clean up
+	
+

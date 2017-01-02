@@ -1,0 +1,21 @@
+From 0.3 to 0.4: Massimiliano Ghilardi, 25 Feb 2012
+	* Fixed build errors with g++ version 4.
+
+From 0.2 to 0.3: Massimiliano Ghilardi, 24 Nov 2001
+	* Changed test for long double function fabsl() to function cosl().
+	* Updated to libTw.so.4 API.
+
+From 0.1 to 0.2: Massimiliano Ghilardi, 22 Jun 2001
+	* Updated includes for libTw headers (from <libTw*.h> to <Tw/Tw*.h>),
+	  updated window sizes not to consider borders.
+	* Updated to libTw.so.3 API.
+	* Fixed KP_Decimal key not to generate KP_0 events
+	  (a `break;' statement was missing).
+	* New `make distclean' target.
+
+From kdeutils to twutils 0.1: Massimiliano Ghilardi <max@linuz.sns.it>, 19 Feb 2001
+
+	* initial twutils release. Only contains `twkalc' at this time
+	(it was ported from KDE to libTw)
+
+

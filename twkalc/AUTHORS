@@ -1,0 +1,32 @@
+Program		Person held responsible
+=======================================
+twkalc		max@linuz.sns.it
+
+Look in the subdirs to get more info about the authors.
+
+The package is maintained by Massimiliano Ghilardi <max@linuz.sns.it>
+
+
+Since `twutils' is (for the moment) a cutdown version of `kdeutils',
+we also include the AUTHORS from `kdeutils' :
+
+---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---
+
+Program		Person held responsible
+=======================================
+karm		taj@kde.org
+kcalc		wuebben@kde.org
+kedit		wuebben@kde.org
+kfloppy		wuebben@kde.org
+khexedit	coolo@kde.org
+kjots		chris@kde.org
+kljettool	wuebben@kde.org
+knotes		wuebben@kde.org
+ark		robertp@macatawa.org
+
+Look in the subdirs to get more info about the authors.
+
+The package is maintained by Stephan Kulow <coolo@kde.org>
+
+---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---*---
+

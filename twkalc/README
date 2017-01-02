@@ -1,0 +1,11 @@
+
+This is `twkalc', a scientific calculator derived from KDE kcalc.
+It is part of 'twutils', a collection of utilities for `twin'.
+
+Twin is a Text WINdows environment.
+Twutils can be downloaded from https://github.com/cosmos72/twutils
+Twin    can be downloaded from https://github.com/cosmos72/twin
+
+If you have problems compiling and installing this package,
+you can use Github issues at https://github.com/cosmos72/twutils/issues
+
