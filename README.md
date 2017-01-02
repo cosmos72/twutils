@@ -1,10 +1,10 @@
 
-This is `twkutils', a collection of utilities for `twin',
+This is `twutils`, a collection of utilities for `twin`,
 a Text WINdows environment.
 
 It currently contains:
-* `twkalc', a scientific calculator derived from KDE kcalc
-* `xmms2-client-twin', an XMMS2 client running inside twin
+* `twkalc`, a scientific calculator derived from KDE kcalc
+* NOT YET: `xmms2-client-twin`, an XMMS2 client running inside twin
 
 Twutils can be downloaded from https://github.com/cosmos72/twutils
 Twin    can be downloaded from https://github.com/cosmos72/twin
