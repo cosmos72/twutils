@@ -1515,7 +1515,8 @@ int cvb(char *out_str, long amount, int max_digits)
 	lead_one = 1,
 	lead_one_count = 0,
 	work_size = sizeof(amount) * CHAR_BIT;
-    unsigned long bit_mask = (1ul << ((sizeof(amount) * CHAR_BIT) - 1));
+    unsigned long top_bit = (1ul << ((sizeof(amount) * CHAR_BIT) - 1));
+    unsigned long bit_mask = top_bit;
 
     while (bit_mask) {
 	
@@ -1530,7 +1531,7 @@ int cvb(char *out_str, long amount, int max_digits)
 		work_str[work_char++] = '0';
 	}
 	bit_mask >>= 1;
-	bit_mask &= 0x7fffffff; //Sven: Uwe's Alpha adition
+	bit_mask &= ~top_bit; //Sven: Uwe's Alpha adition
     }
     if (!work_char)
 	work_str[work_char++] = '0';
