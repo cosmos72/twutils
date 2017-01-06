@@ -1,3 +1,4 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -171,17 +172,52 @@ static void parse_message(DBusMessage *message) {
     fflush(stdout);
 }
 
+static void dbus_append_arg(DBusMessageIter * iter, int type, const void * arg)
+{
+    dbus_message_iter_append_basic(iter, type, arg);
+}
+    
+static void dbus_append_args(DBusMessage *message, DBusMessageIter * iter, va_list va)
+{
+    DBusMessageIter container_iter, *target_iter;
+    const void * arg;
+    int container_type, type;
+    
+    dbus_message_iter_init_append(message, iter);
+    
+    while ((container_type = va_arg(va, int)) != DBUS_TYPE_INVALID) {
+        if (container_type == DBUS_TYPE_VARIANT) {
+            char sig[2];
+            sig[0] = type = va_arg(va, int);
+            sig[1] = '\0';
+            dbus_message_iter_open_container (iter, container_type, sig, &container_iter);
+            target_iter = &container_iter;
+        } else {
+            target_iter = iter;
+            type = container_type;
+            container_type = DBUS_TYPE_INVALID;
+        }
+            
+        arg = va_arg(va, const void *);
+        dbus_append_arg(target_iter, type, arg);
+        
+        if (container_type != DBUS_TYPE_INVALID)
+            dbus_message_iter_close_container(iter, &container_iter);
+    }
+}
 
-static const char mpris_interface[] = "org.mpris.MediaPlayer2.Player";
-static const char props_interface[] = "org.freedesktop.DBus.Properties";
+static const char * const mpris_interface = "org.mpris.MediaPlayer2.Player";
+static const char * const props_interface = "org.freedesktop.DBus.Properties";
 
-static void mpris_driver_call(pl_driver pl_base, int parse_reply, const char * method, ...) {
+static void dbus_call(pl_driver pl_base, int parse_reply, const char * interface, const char * method, ...) {
     mpris_driver pl = TO_MPRIS_DRIVER(pl_base);
-    const char * interface = mpris_interface;
-    int reply_timeout = -1;
-    DBusMessage *message = dbus_message_new_method_call(NULL, pl->path, interface, method);
+    DBusMessage *message = dbus_message_new_method_call(NULL, pl->path, (interface = interface ? interface : mpris_interface), method);
+    DBusMessageIter iter;
     DBusMessage *reply = NULL;
+    int reply_timeout = -1;
 
+    // parse_reply = 1;
+    
     if (message == NULL) {
         fprintf(stderr, "Failed to allocate D-Bus message\n");
         return;
@@ -192,9 +228,11 @@ static void mpris_driver_call(pl_driver pl_base, int parse_reply, const char * m
         goto cleanup;
     }
     /* prepare args */
-    if (0) {
-        DBusMessageIter iter;
-        dbus_message_iter_init_append(message, &iter);
+    {
+        va_list va;
+        va_start(va, method);
+        dbus_append_args(message, &iter, va);
+        va_end(va);
     }
     dbus_error_init(&pl->error);
     if (parse_reply)
@@ -217,24 +255,28 @@ cleanup:
         dbus_message_unref(message); 
 }
 
+static inline void mpris_driver_set_property(pl_driver pl, const char * property_name, int property_type, const void * property_value) {
+    dbus_call(pl, 0, props_interface, "Set", DBUS_TYPE_STRING, & mpris_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_VARIANT, property_type, property_value, DBUS_TYPE_INVALID);
+}
+
 static void mpris_driver_play(pl_driver pl) {
-    mpris_driver_call(pl, 0, "Play", DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Play", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_pause(pl_driver pl) {
-    mpris_driver_call(pl, 0, "Pause", DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Pause", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_stop(pl_driver pl) {
-    mpris_driver_call(pl, 0, "Stop", DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Stop", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_next(pl_driver pl) {
-    mpris_driver_call(pl, 0, "Next", DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Next", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_prev(pl_driver pl) {
-    mpris_driver_call(pl, 0, "Previous", DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Previous", DBUS_TYPE_INVALID);
 }
 
 static int64_t mpris_driver_position(pl_driver pl) {
@@ -243,7 +285,7 @@ static int64_t mpris_driver_position(pl_driver pl) {
 }
 
 static void mpris_driver_seek(pl_driver pl, int64_t offset) {
-    mpris_driver_call(pl, 0, "Seek", DBUS_TYPE_INT64, &offset, DBUS_TYPE_INVALID);
+    dbus_call(pl, 0, NULL, "Seek", DBUS_TYPE_INT64, &offset, DBUS_TYPE_INVALID);
 }
 
 static double mpris_driver_volume(pl_driver pl) {
@@ -252,7 +294,7 @@ static double mpris_driver_volume(pl_driver pl) {
 }
 
 static void mpris_driver_set_volume(pl_driver pl, double volume) {
-    /* TODO */
+    mpris_driver_set_property(pl, "Volume", DBUS_TYPE_DOUBLE, &volume);
 }
 
 
