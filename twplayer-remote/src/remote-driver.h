@@ -14,8 +14,8 @@ struct pl_driver_s {
     void (*prev)(pl_driver pl);
     int64_t (*position)(pl_driver pl);
     void (*seek)(pl_driver pl, int64_t offset);
-    double (*volume)(pl_driver pl);
-    void (*set_volume)(pl_driver pl, double volume);
+    int64_t (*volume)(pl_driver pl);
+    void (*set_volume)(pl_driver pl, int64_t volume);
 };
 
 pl_driver mpris_driver_new(const char *remote);

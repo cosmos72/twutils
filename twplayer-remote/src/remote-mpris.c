@@ -23,102 +23,111 @@ struct mpris_driver_s {
 
 #define TO_MPRIS_DRIVER(base_ptr)                   CONTAINER_OF(base_ptr, struct mpris_driver_s, base)
 
-typedef struct mpris_arg_s * mpris_arg;
+typedef struct dbus_arg_s * dbus_arg;
 
-struct mpris_arg_s {
+struct dbus_arg_s {
     int type;
     union {
         double d;
         dbus_int64_t i64;
         dbus_uint64_t u64;
-        dbus_int32_t i32;
-        dbus_uint32_t u32;
-        dbus_int16_t i16;
-        dbus_uint16_t u16;
         char * str;
-        unsigned char byte;
-        dbus_bool_t boolean;
     };
 };
 
-static void parse_iter(DBusMessageIter *iter) {
-    char * val_str;
-    union {
-        DBusMessageIter subiter;
-        double d;
-        dbus_int64_t i64;
-        dbus_uint64_t u64;
-        dbus_int32_t i32;
-        dbus_uint32_t u32;
-        dbus_int16_t i16;
-        dbus_uint16_t u16;
-        char * str;
-        unsigned char byte;
-        dbus_bool_t boolean;
-    } val;
+void dbus_arg_unref(dbus_arg arg) {
+   if (arg != NULL && arg->type == DBUS_TYPE_STRING)
+   {
+       free(arg->str);
+       arg->str = NULL;
+   }
+}
+
+static void parse_iter(DBusMessageIter *iter, dbus_arg result) {
     int type;
     
     do {
-        type = dbus_message_iter_get_arg_type (iter);
+        result->type = type = dbus_message_iter_get_arg_type (iter);
         if (type == DBUS_TYPE_INVALID)
             break;
         switch (type) {
-        case DBUS_TYPE_STRING:
-            dbus_message_iter_get_basic (iter, &val.str);
-            printf("string: %s\n", val.str);
+	 case DBUS_TYPE_STRING:
+	    {
+	        const char * str = NULL;
+	        dbus_message_iter_get_basic (iter, &str);
+	        result->str = str ? strdup(str) : NULL;
+	        break;
+	    }
+	 case DBUS_TYPE_SIGNATURE:
+	 case DBUS_TYPE_OBJECT_PATH:
             break;
-        case DBUS_TYPE_SIGNATURE:
-        case DBUS_TYPE_OBJECT_PATH:
-            break;
-        case DBUS_TYPE_INT16:
-            dbus_message_iter_get_basic (iter, &val.i16);
-            printf("int16: %d\n", (int)val.i16);
-            break;
-        case DBUS_TYPE_UINT16:
-            dbus_message_iter_get_basic (iter, &val.u16);
-            printf("uint16: %u\n", (unsigned)val.u16);
-            break;
-        case DBUS_TYPE_INT32:
-            dbus_message_iter_get_basic (iter, &val.i32);
-            printf("int32: %u\n", (int)val.i32);
-            break;
-        case DBUS_TYPE_UINT32:
-            dbus_message_iter_get_basic (iter, &val.u32);
-            printf("uint32: %u\n", (unsigned)val.u32);
+	 case DBUS_TYPE_INT16:
+	    {
+	        int16_t val = 0;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_INT64;
+	        result->i64 = val;
+	        break;
+	    }
+	 case DBUS_TYPE_UINT16:
+	    {
+	        uint16_t val = 0;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_UINT64;
+	        result->u64 = val;
+	        break;
+	    }
+	 case DBUS_TYPE_INT32:
+	    {
+	        int32_t val = 0;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_INT64;
+	        result->i64 = val;
+	        break;
+	    }
+	 case DBUS_TYPE_UINT32:
+	    {
+	        uint32_t val = 0;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_UINT64;
+	        result->u64 = val;
+	    }
             break;
         case DBUS_TYPE_INT64:
-            dbus_message_iter_get_basic (iter, &val.i64);
-#ifdef DBUS_INT64_PRINTF_MODIFIER
-            printf("int64: %" DBUS_INT64_PRINTF_MODIFIER "d\n", val.i64);
-#else 
-            printf("int64: %lld\n", (long long)val.i64);
-#endif
+	    result->i64 = 0;
+            dbus_message_iter_get_basic (iter, &result->i64);
             break;
         case DBUS_TYPE_UINT64:
-            dbus_message_iter_get_basic (iter, &val.u64);
-#ifdef DBUS_INT64_PRINTF_MODIFIER
-            printf("uint64: %" DBUS_INT64_PRINTF_MODIFIER "u\n", val.i64);
-#else 
-            printf("uint64: %llu\n", (unsigned long long)val.i64);
-#endif
+	    result->u64 = 0;
+            dbus_message_iter_get_basic (iter, &result->u64);
             break;
         case DBUS_TYPE_DOUBLE:
-            dbus_message_iter_get_basic (iter, &val.d);
-            printf("double: %g\n", val); 
+	    result->d = 0.0;
+            dbus_message_iter_get_basic (iter, &result->d);
             break;
         case DBUS_TYPE_BYTE:
-            dbus_message_iter_get_basic (iter, &val.byte);
-            printf("byte %u\n", (unsigned)val.byte);
-            break;
+	    {
+	        unsigned char val = 0;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_UINT64;
+	        result->u64 = val;
+	        break;
+	    }
         case DBUS_TYPE_BOOLEAN:
-            dbus_message_iter_get_basic (iter, &val.boolean);
-            printf("boolean: %s\n", val.boolean ? "true" : "false");
-            break;
+	    {
+	        dbus_bool_t val = FALSE;
+	        dbus_message_iter_get_basic (iter, &val);
+	        result->type = DBUS_TYPE_UINT64;
+	        result->u64 = val == TRUE ? 1 : 0;
+	        break;
+	    }
         case DBUS_TYPE_VARIANT:
-            dbus_message_iter_recurse (iter, &val.subiter);
-            printf("variant:\n");
-            parse_iter(&val.subiter);
-            break;
+	    {
+	        DBusMessageIter subiter;
+	        dbus_message_iter_recurse (iter, &subiter);
+	        parse_iter(&subiter, result);
+	        break;
+	    }
         case DBUS_TYPE_ARRAY:
         case DBUS_TYPE_DICT_ENTRY:
         case DBUS_TYPE_STRUCT:
@@ -126,50 +135,86 @@ static void parse_iter(DBusMessageIter *iter) {
         case DBUS_TYPE_UNIX_FD:
 #endif
             /* TODO */
-            printf ("not-yet supported type=%d\n", type);
+            printf ("unsupported type=%d\n", type);
             break;
         default:
             printf ("unknown type=%d\n", type);
             break;
         }
-    } while (dbus_message_iter_next (iter));
+    } while (0 /*dbus_message_iter_next (iter)*/);
 }
 
-static void parse_message(DBusMessage *message) {
-    DBusMessageIter iter;
-    /*
-     const char * sender = dbus_message_get_sender(message);
-     const char *  destination = dbus_message_get_destination(message);
-     */
-    int message_type = dbus_message_get_type(message);
-    switch (message_type) {
-    case DBUS_MESSAGE_TYPE_METHOD_CALL:
-    case DBUS_MESSAGE_TYPE_SIGNAL:
-        printf(" serial=%u path=%s; interface=%s; member=%s\n",
-               dbus_message_get_serial(message),
-               dbus_message_get_path(message),
-               dbus_message_get_interface(message),
-               dbus_message_get_member(message)); 
-        break;
-    case DBUS_MESSAGE_TYPE_METHOD_RETURN:
-        printf(" serial=%u reply_serial=%u\n",
-               dbus_message_get_serial(message),
-               dbus_message_get_reply_serial(message));
-        break;
-    case DBUS_MESSAGE_TYPE_ERROR:
-        printf(" error_name=%s reply_serial=%u\n",
-               dbus_message_get_error_name (message),
-               dbus_message_get_reply_serial(message));
-        break;
-    default:
-        printf(" unknown message type=%d\n",
-               message_type);
-        break;
+static void parse_message(DBusMessage *message, dbus_arg result) {
+    if (!result)
+        return;
+
+    result->type = DBUS_TYPE_INVALID;
+   
+    if (message != NULL) {
+        DBusMessageIter iter;
+        int message_type = dbus_message_get_type(message);
+   
+        switch (message_type) {
+	 case DBUS_MESSAGE_TYPE_METHOD_CALL:
+	 case DBUS_MESSAGE_TYPE_SIGNAL:
+	   break;
+	 case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+	   dbus_message_iter_init (message, &iter);
+	   parse_iter(&iter, result); 
+	   break;
+	 case DBUS_MESSAGE_TYPE_ERROR:
+	   printf(" error_name=%s reply_serial=%u\n",
+		  dbus_message_get_error_name (message),
+		  dbus_message_get_reply_serial(message));
+	   break;
+	 default:
+	   printf(" unknown message type=%d\n", message_type);
+	   break;
+	}
+        fflush(stdout);
     }
-    dbus_message_iter_init (message, &iter);
-    parse_iter(&iter); 
-    
-    fflush(stdout);
+}
+
+static double to_double(dbus_arg arg)
+{
+    double d;
+    switch (arg->type)
+    {
+     case DBUS_TYPE_DOUBLE:
+       d = arg->d;
+       break;
+     case DBUS_TYPE_UINT64:
+       d = arg->u64 / 100.0;
+       break;
+     case DBUS_TYPE_INT64:
+       d = arg->i64 / 100.0;
+       break;
+     default:
+       d = 0.0;
+       break;
+    }
+    return d;
+}
+
+static double to_int64(dbus_arg arg)
+{
+    int64_t i;
+    switch (arg->type)
+    {
+     case DBUS_TYPE_DOUBLE:
+       i = (int64_t)(arg->d * 100.0 + 0.5);
+       break;
+     case DBUS_TYPE_UINT64:
+       i = (int64_t)arg->u64;
+       break;
+     case DBUS_TYPE_INT64:
+       i = arg->i64;
+       break;
+     default:
+       i = 0;
+       break;
+    }
+    return i;
 }
 
 static void dbus_append_arg(DBusMessageIter * iter, int type, const void * arg)
@@ -209,7 +254,7 @@ static void dbus_append_args(DBusMessage *message, DBusMessageIter * iter, va_li
 static const char * const mpris_interface = "org.mpris.MediaPlayer2.Player";
 static const char * const props_interface = "org.freedesktop.DBus.Properties";
 
-static void dbus_call(pl_driver pl_base, int parse_reply, const char * interface, const char * method, ...) {
+static void dbus_call(pl_driver pl_base, dbus_arg result, const char * interface, const char * method, ...) {
     mpris_driver pl = TO_MPRIS_DRIVER(pl_base);
     DBusMessage *message = dbus_message_new_method_call(NULL, pl->path, (interface = interface ? interface : mpris_interface), method);
     DBusMessageIter iter;
@@ -235,7 +280,7 @@ static void dbus_call(pl_driver pl_base, int parse_reply, const char * interface
         va_end(va);
     }
     dbus_error_init(&pl->error);
-    if (parse_reply)
+    if (result)
         reply = dbus_connection_send_with_reply_and_block(pl->connection, message, reply_timeout, &pl->error);
     else {
         dbus_connection_send(pl->connection, message, NULL);
@@ -246,8 +291,8 @@ static void dbus_call(pl_driver pl_base, int parse_reply, const char * interface
                  pl->dest, pl->path, interface, method, pl->error.name, pl->error.message);
         goto cleanup;
     }
-    if (reply)
-        parse_message(reply);
+    if (result)
+        parse_message(reply, result);
 cleanup:
     if (reply)
         dbus_message_unref(reply); 
@@ -255,46 +300,56 @@ cleanup:
         dbus_message_unref(message); 
 }
 
+static inline void mpris_driver_get_property(pl_driver pl, dbus_arg arg, const char * property_name) {
+    dbus_call(pl, arg, props_interface, "Get", DBUS_TYPE_STRING, & mpris_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_INVALID);
+}
+
 static inline void mpris_driver_set_property(pl_driver pl, const char * property_name, int property_type, const void * property_value) {
-    dbus_call(pl, 0, props_interface, "Set", DBUS_TYPE_STRING, & mpris_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_VARIANT, property_type, property_value, DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, props_interface, "Set", DBUS_TYPE_STRING, & mpris_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_VARIANT, property_type, property_value, DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_play(pl_driver pl) {
-    dbus_call(pl, 0, NULL, "Play", DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, NULL, "Play", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_pause(pl_driver pl) {
-    dbus_call(pl, 0, NULL, "Pause", DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, NULL, "Pause", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_stop(pl_driver pl) {
-    dbus_call(pl, 0, NULL, "Stop", DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, NULL, "Stop", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_next(pl_driver pl) {
-    dbus_call(pl, 0, NULL, "Next", DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, NULL, "Next", DBUS_TYPE_INVALID);
 }
 
 static void mpris_driver_prev(pl_driver pl) {
-    dbus_call(pl, 0, NULL, "Previous", DBUS_TYPE_INVALID);
+    dbus_call(pl, NULL, NULL, "Previous", DBUS_TYPE_INVALID);
 }
 
 static int64_t mpris_driver_position(pl_driver pl) {
-    /* TODO */
-    return 0;
+    struct dbus_arg_s arg;
+    mpris_driver_get_property(pl, &arg, "Position");
+    dbus_arg_unref(&arg);
+    return to_int64(&arg) / 1000;
 }
 
 static void mpris_driver_seek(pl_driver pl, int64_t offset) {
-    dbus_call(pl, 0, NULL, "Seek", DBUS_TYPE_INT64, &offset, DBUS_TYPE_INVALID);
+    offset *= 1000;
+    dbus_call(pl, NULL, NULL, "Seek", DBUS_TYPE_INT64, &offset, DBUS_TYPE_INVALID);
 }
 
-static double mpris_driver_volume(pl_driver pl) {
-    /* TODO */
-    return 0.0;   
+static int64_t mpris_driver_volume(pl_driver pl) {
+    struct dbus_arg_s arg;
+    mpris_driver_get_property(pl, &arg, "Volume");
+    dbus_arg_unref(&arg);
+    return (int64_t)(to_double(&arg) * 100.0 + 0.5);
 }
 
-static void mpris_driver_set_volume(pl_driver pl, double volume) {
-    mpris_driver_set_property(pl, "Volume", DBUS_TYPE_DOUBLE, &volume);
+static void mpris_driver_set_volume(pl_driver pl, int64_t volume) {
+    double vol_double = volume / 100.0;
+    mpris_driver_set_property(pl, "Volume", DBUS_TYPE_DOUBLE, &vol_double);
 }
 
 

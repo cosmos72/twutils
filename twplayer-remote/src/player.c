@@ -281,7 +281,10 @@ void load_track_info(void)
 /* get values from XMMS2 */
 static void receive(void) {
     if (pl) {
-#if 0
+#if 1
+        volume      = pl->volume(pl);
+	currentTime = pl->position(pl);
+#else
 	playlistpos = to_int(xmmsc_playback_current_id(conn));
         volume      = to_int(xmmsc_playback_volume_get(conn));
 	currentTime = to_int(xmmsc_playback_playtime(conn));
@@ -371,7 +374,7 @@ static void event_mouse(tevent_mouse event) {
 	    } else {
 		volume += 2;
 	    }
-            pl->set_volume(pl, volume / 100.0);
+            pl->set_volume(pl, volume);
 	}
     } else if (event->Code == PRESS_RIGHT && event->W == win) {
 	/*
