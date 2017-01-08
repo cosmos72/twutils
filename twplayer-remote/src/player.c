@@ -23,8 +23,8 @@
 #include "remote-driver.h"
 
 static int titleXPosition, titleScrollSpeed = 1, titleScrollMode, titleWidth;
-static int mywidth, volume, playlistpos, displayElapsedTime;  
-static long trackTime, currentTime;
+static int mywidth, displayElapsedTime;  
+static long volume, trackTime, currentTime;
 
 static char title[1024];
 
@@ -162,7 +162,7 @@ static void paint(void) {
 	int cTime = currentTime / 1000;
 	int tTime = trackTime / 1000;
 
-	sprintf(buf, "\x11%02d:%02d/%02d:%02d\x10 \x1F%03d%%\x1E",
+	sprintf(buf, "\x11%02d:%02d/%02d:%02d\x10 \x1F%03ld%%\x1E",
 		cTime/60, cTime%60, tTime/60, tTime%60, volume);
     } else {
 	memset(buf, ' ', 20);
@@ -223,12 +223,49 @@ static void scroll(void) {
 
 void load_track_info(void)
 {
-#if 0
+#if 1
+    struct pl_trackinfo_s info = { 0, 0, 0, "\0", "\0" };
+    size_t len, len2;
+    if (pl)
+        pl->get_trackinfo(pl, &info);
+
+    len = info.artist_len;
+    len2 = info.title_len;
+    
+    if (len) {
+        if (len >= sizeof(title)/2)
+            len = sizeof(title)/2 - 1;
+                    
+        if (len)
+            memcpy(title, info.artist, len);
+    }
+    if (len && len2) {
+        memcpy(title + len, " - ", 3);
+        len += 3;
+    }
+    if (len2) {
+        if (len2 >= sizeof(title) - len)
+            len2 = sizeof(title) - len - 1;
+                    
+        if (len2) {
+            memcpy(title + len, info.title, len2);
+            len += len2;
+        }
+    }
+    if (!len)
+        memcpy(title, "<<unknown>>", (len = 11));
+
+    title[len] = '\0';
+    titleWidth = len;
+    trackTime = info.duration;
+#else    
     const char * track_title = NULL, * track_artist = NULL;
     size_t track_title_len = 0, track_artist_len = 0;
     int32_t id = 0, duration = 0;
 
-    xmmsc_result_t * res = xmmsc_medialib_get_info(conn, playlistpos);
+    long current_track_id = to_int(xmmsc_playback_current_id(conn));
+    
+    xmmsc_result_t * res = xmmsc_medialib_get_info(conn, current_track_id);
 
     if (res != NULL) {
         xmmsc_result_wait(res);
@@ -282,20 +319,19 @@ void load_track_info(void)
 static void receive(void) {
     if (pl) {
 #if 1
-        volume      = pl->volume(pl);
-	currentTime = pl->position(pl);
+        volume      = pl->get_volume(pl);
+	currentTime = pl->get_position(pl);
 #else
-	playlistpos = to_int(xmmsc_playback_current_id(conn));
         volume      = to_int(xmmsc_playback_volume_get(conn));
 	currentTime = to_int(xmmsc_playback_playtime(conn));
-        load_track_info();
 #endif
+        load_track_info();
     }
 }
 
 static int connect_remote() {
     if (!pl)
-        pl = mpris_driver_new(remote ? remote : defaultRemote);
+        pl = mpris2_driver_new(remote ? remote : defaultRemote);
     if (pl)
         receive();
     
@@ -370,11 +406,11 @@ static void event_mouse(tevent_mouse event) {
 
 	} else if (event->X >= 14) {
 	    if (event->X <= 16) {
-		volume -= 2;
+		volume = (volume - 2) & ~(long)1;
 	    } else {
-		volume += 2;
+		volume = (volume + 2) & ~(long)1;
 	    }
-            pl->set_volume(pl, volume);
+            volume = pl->set_volume(pl, volume);
 	}
     } else if (event->Code == PRESS_RIGHT && event->W == win) {
 	/*
