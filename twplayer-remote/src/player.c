@@ -410,6 +410,10 @@ static void event_mouse(tevent_mouse event) {
 	    } else {
 		volume = (volume + 2) & ~(long)1;
 	    }
+            if (volume < 0)
+                volume = 0;
+            else if (volume > 100)
+                volume = 100;
             volume = pl->set_volume(pl, volume);
 	}
     } else if (event->Code == PRESS_RIGHT && event->W == win) {
