@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([twplayer-remote], [0.5.0])
+AC_INIT([twplayer_remote], [0.5.0])
 AC_CONFIG_SRCDIR([src/player.c])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_AUX_DIR([admin])

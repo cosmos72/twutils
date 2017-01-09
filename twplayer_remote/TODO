@@ -1,0 +1,17 @@
+twplayer_remote:
+    fix memory leak and lots of errors when remote player exits. see valgrid leak report:
+
+==25025== 1,640 bytes in 20 blocks are definitely lost in loss record 85 of 88
+==25025==    at 0x4C2CDCF: realloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==25025==    by 0x4E676FC: ??? (in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x4E67F53: _dbus_string_append_printf_valist(in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x4E4F162: _dbus_set_error_valist (in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x4E4F2DE: dbus_set_error (in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x4E595A0: dbus_set_error_from_message (in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x4E4BBF9: dbus_connection_send_with_reply_and_block(in /lib/x86_64-linux-gnu/libdbus-1.so.3.14.9)
+==25025==    by 0x10B13E: dcall_exec_get_reply(remote_mpris2.c:374)
+==25025==    by 0x10B7CF: mpris2_get_trackinfo(remote_mpris2.c:491)
+==25025==    by 0x10C8E9: load_track_info (player.c:284)
+==25025==    by 0x10CA79: receive(player.c:382)
+==25025==    by 0x10D23A: main_loop (player.c:593)
+                

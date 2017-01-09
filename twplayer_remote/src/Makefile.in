@@ -86,7 +86,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = twplayer-remote$(EXEEXT)
+bin_PROGRAMS = twplayer_remote$(EXEEXT)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -99,7 +99,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_twplayer_remote_OBJECTS = remote-mpris2.$(OBJEXT) player.$(OBJEXT)
+am_twplayer_remote_OBJECTS = remote_driver.$(OBJEXT) \
+	remote_mpris2.$(OBJEXT) player.$(OBJEXT)
 twplayer_remote_OBJECTS = $(am_twplayer_remote_OBJECTS)
 twplayer_remote_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -250,7 +251,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-twplayer_remote_SOURCES = remote-mpris2.c player.c
+twplayer_remote_SOURCES = remote_driver.c remote_mpris2.c player.c
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
 
@@ -343,8 +344,8 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-twplayer-remote$(EXEEXT): $(twplayer_remote_OBJECTS) $(twplayer_remote_DEPENDENCIES) $(EXTRA_twplayer_remote_DEPENDENCIES) 
-	@rm -f twplayer-remote$(EXEEXT)
+twplayer_remote$(EXEEXT): $(twplayer_remote_OBJECTS) $(twplayer_remote_DEPENDENCIES) $(EXTRA_twplayer_remote_DEPENDENCIES) 
+	@rm -f twplayer_remote$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(twplayer_remote_OBJECTS) $(twplayer_remote_LDADD) $(LIBS)
 
 mostlyclean-compile:
@@ -354,7 +355,8 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/player.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote-mpris2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote_driver.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote_mpris2.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

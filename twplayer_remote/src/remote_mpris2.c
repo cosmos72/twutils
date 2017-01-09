@@ -6,7 +6,7 @@
 
 #include <dbus/dbus.h> 
 
-#include "remote-driver.h"
+#include "remote_driver.h"
 
 typedef struct mpris2_driver_s * mpris2_driver;
 
@@ -14,8 +14,8 @@ struct mpris2_driver_s {
     struct pl_driver_s base;
     DBusConnection * connection;
     DBusError error;
-    const char *dest; /* "org.mpris.MediaPlayer2.audacious" */
-    const char *path; /* "/org/mpris/MediaPlayer2" */
+    char *dest;       /* for example "org.mpris.MediaPlayer2.audacious" */
+    const char *path; /* typically "/org/mpris/MediaPlayer2" */
 };
 
 #define OFFSET_OF(ptr, struct_name, member_name)    ((char const *)&(((struct_name const *)(ptr))->member_name) - (char const *)((struct_name const *)(ptr)))
@@ -174,10 +174,6 @@ static void dmessage_parse(DBusMessage *message, darg result) {
 	}
         fflush(stdout);
     }
-}
-
-static inline size_t min2(size_t a, size_t b) {
-    return a < b ? a : b;
 }
 
 static void dparse_keyvaluestr_trackinfo(const char * key, const char * value, pl_trackinfo info) {
@@ -353,7 +349,6 @@ static const char * const props_interface = "org.freedesktop.DBus.Properties";
 
 static DBusMessage * dcall_prepare(mpris2_driver pl, const char * interface, const char * method) {
     DBusMessage *message = dbus_message_new_method_call(NULL, pl->path, (interface = interface ? interface : mpris2_interface), method);
-    
     if (message == NULL) {
         fprintf(stderr, "Failed to allocate D-Bus message\n");
         goto cleanup;
@@ -426,63 +421,63 @@ static void dcall(pl_driver pl_base, darg result, const char * interface, const 
     }
 }
 
-static inline void mpris2_driver_get_property(pl_driver pl_base, darg arg, const char * property_name) {
+static inline void mpris2_get_property(pl_driver pl_base, darg arg, const char * property_name) {
     dcall(pl_base, arg, props_interface, "Get", DBUS_TYPE_STRING, & mpris2_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_INVALID);
 }
 
-static inline void mpris2_driver_set_property(pl_driver pl_base, dbus_bool_t blocking, const char * property_name, int property_type, const void * property_value) {
+static inline void mpris2_set_property(pl_driver pl_base, dbus_bool_t blocking, const char * property_name, int property_type, const void * property_value) {
     struct darg_s arg;
     dcall(pl_base, (blocking ? &arg : NULL), props_interface, "Set", DBUS_TYPE_STRING, & mpris2_interface, DBUS_TYPE_STRING, & property_name, DBUS_TYPE_VARIANT, property_type, property_value, DBUS_TYPE_INVALID);
 }
 
-static void mpris2_driver_play(pl_driver pl_base) {
+static void mpris2_play(pl_driver pl_base) {
     dcall(pl_base, NULL, NULL, "Play", DBUS_TYPE_INVALID);
 }
 
-static void mpris2_driver_pause(pl_driver pl_base) {
+static void mpris2_pause(pl_driver pl_base) {
     dcall(pl_base, NULL, NULL, "Pause", DBUS_TYPE_INVALID);
 }
 
-static void mpris2_driver_stop(pl_driver pl_base) {
+static void mpris2_stop(pl_driver pl_base) {
     dcall(pl_base, NULL, NULL, "Stop", DBUS_TYPE_INVALID);
 }
 
-static void mpris2_driver_next(pl_driver pl_base) {
+static void mpris2_next(pl_driver pl_base) {
     dcall(pl_base, NULL, NULL, "Next", DBUS_TYPE_INVALID);
 }
 
-static void mpris2_driver_prev(pl_driver pl_base) {
+static void mpris2_prev(pl_driver pl_base) {
     dcall(pl_base, NULL, NULL, "Previous", DBUS_TYPE_INVALID);
 }
 
-static long mpris2_driver_get_position(pl_driver pl_base) {
+static long mpris2_get_position(pl_driver pl_base) {
     struct darg_s arg;
-    mpris2_driver_get_property(pl_base, &arg, "Position");
+    mpris2_get_property(pl_base, &arg, "Position");
     darg_unref(&arg);
     return to_int64(&arg) / 1000;
 }
 
-static void mpris2_driver_seek(pl_driver pl_base, long offset) {
+static void mpris2_seek(pl_driver pl_base, long offset) {
     int64_t offset64 = (int64_t)offset * 1000;
     dcall(pl_base, NULL, NULL, "Seek", DBUS_TYPE_INT64, &offset64, DBUS_TYPE_INVALID);
 }
 
-static long mpris2_driver_get_volume(pl_driver pl_base) {
+static long mpris2_get_volume(pl_driver pl_base) {
     struct darg_s arg;
-    mpris2_driver_get_property(pl_base, &arg, "Volume");
+    mpris2_get_property(pl_base, &arg, "Volume");
     darg_unref(&arg);
     return (long)(to_double(&arg) * 100.0 + 0.5);
 }
 
-static long mpris2_driver_set_volume(pl_driver pl_base, long volume) {
+static long mpris2_set_volume(pl_driver pl_base, long volume) {
     double vol_double = volume / 100.0;
-    mpris2_driver_set_property(pl_base, FALSE, "Volume", DBUS_TYPE_DOUBLE, &vol_double);
+    mpris2_set_property(pl_base, FALSE, "Volume", DBUS_TYPE_DOUBLE, &vol_double);
     
-    return mpris2_driver_get_volume(pl_base);
+    return mpris2_get_volume(pl_base);
 }
 
     
-static void mpris2_driver_get_trackinfo(pl_driver pl_base, pl_trackinfo info) {
+static void mpris2_get_trackinfo(pl_driver pl_base, pl_trackinfo info) {
     mpris2_driver pl = TO_MPRIS2_DRIVER(pl_base);
     DBusMessage *message = dcall_prepare(pl, props_interface, "Get");
     
@@ -502,35 +497,35 @@ static void mpris2_driver_get_trackinfo(pl_driver pl_base, pl_trackinfo info) {
 }
 
 
-static void mpris2_driver_del(pl_driver pl_base)
+static void mpris2_del(pl_driver pl_base)
 {
     if (pl_base) {
         mpris2_driver pl = TO_MPRIS2_DRIVER(pl_base);
         if (pl->connection)
             dbus_connection_unref(pl->connection);
+        free(pl->dest); /* we made our own copy of pl->dest in ddriver_init() below */
+        clear_driver(pl_base);
         free(pl);
     }
 }
 
 static const struct pl_driver_s mpris2_funcs = {
-    mpris2_driver_del,
-    mpris2_driver_play,
-    mpris2_driver_pause,
-    mpris2_driver_stop,
-    mpris2_driver_next,
-    mpris2_driver_prev,
-    mpris2_driver_get_position,
-    mpris2_driver_seek,
-    mpris2_driver_get_volume,
-    mpris2_driver_set_volume,
-    mpris2_driver_get_trackinfo,
+    NULL,
+    mpris2_del,
+    mpris2_play,
+    mpris2_pause,
+    mpris2_stop,
+    mpris2_next,
+    mpris2_prev,
+    mpris2_get_position,
+    mpris2_seek,
+    mpris2_get_volume,
+    mpris2_set_volume,
+    mpris2_get_trackinfo,
 };
 
-pl_driver mpris2_driver_new(const char *dest) {
-    mpris2_driver pl = (mpris2_driver)calloc(1, sizeof(struct mpris2_driver_s));
-    if (!pl)
-        return NULL;
-    
+static int ddriver_init(mpris2_driver pl, const char *dest) {
+    int error = 0;
     dbus_error_init(&pl->error); 
     
     pl->connection = dbus_bus_get(DBUS_BUS_SESSION, &pl->error);
@@ -544,14 +539,73 @@ pl_driver mpris2_driver_new(const char *dest) {
         fprintf(stderr, "invalid D-Bus destination '%s'\n", dest);
         goto fail;
     }
+    pl->dest = strdup_or_error(dest, & error); /* safety: make our own copy of dest */
+    return error;
+    
+fail:
+    return -1;
+}
+
+pl_driver mpris2_new(const char *dest) {
+    mpris2_driver pl = (mpris2_driver)calloc(1, sizeof(struct mpris2_driver_s));
+    if (!pl)
+        return NULL;
+
+    if (ddriver_init(pl, dest) != 0)
+        goto fail;
     
     pl->base = mpris2_funcs; /* struct copy */
-    pl->dest = dest; /* "org.mpris.MediaPlayer2.audacious" */
     pl->path = "/org/mpris/MediaPlayer2";
     
     return & pl->base;
     
 fail:
-    mpris2_driver_del(& pl->base);
+    mpris2_del(& pl->base);
     return NULL;
+}
+
+/***************************** factory *******************************/
+
+static void dparse_reply_factories(DBusMessage *reply, pl_factories collection) {
+    DBusMessageIter iter1, iter2;
+    const char * dest;
+    
+    if (reply == NULL || dbus_message_get_type(reply) != DBUS_MESSAGE_TYPE_METHOD_RETURN)
+        return;
+    
+    dbus_message_iter_init (reply, &iter1);
+    if (dbus_message_iter_get_arg_type(&iter1) != DBUS_TYPE_ARRAY)
+        return;
+
+    dbus_message_iter_recurse (&iter1, &iter2);
+    while (dbus_message_iter_get_arg_type(&iter2) == DBUS_TYPE_STRING) {
+        dest = NULL;
+        dbus_message_iter_get_basic (&iter2, &dest);
+        
+        if (dest && !strncmp("org.mpris.MediaPlayer2.", dest, 23))
+            append_new_factory(collection, dest + 23, dest, mpris2_new);
+        
+        dbus_message_iter_next (&iter2);
+    }
+}
+
+static struct mpris2_driver_s pl_scanner;
+
+static int mpris2_init_scanner(void) {
+    pl_scanner.path = "/org/freedesktop/DBus";
+    return ddriver_init(&pl_scanner, "org.freedesktop.DBus");
+}
+
+void mpris2_list_factories(pl_factories collection) {
+    if (!pl_scanner.connection && mpris2_init_scanner() != 0)
+        return;
+
+    DBusMessage *message = dcall_prepare(&pl_scanner, "org.freedesktop.DBus", "ListNames");
+    if (message != NULL) {
+        DBusMessage *reply = dcall_exec_get_reply(&pl_scanner, message);
+
+        dparse_reply_factories(reply, collection);
+        
+        dcall_unref(message, reply);
+    }
 }

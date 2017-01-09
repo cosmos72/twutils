@@ -20,17 +20,17 @@
 #include <Tw/Tw.h>
 #include <Tw/Twerrno.h>
 
-#include "remote-driver.h"
+#include "remote_driver.h"
 
-static int titleXPosition, titleScrollSpeed = 1, titleScrollMode, titleWidth;
-static int mywidth, displayElapsedTime;  
+static int trackXPosition, trackScrollSpeed = 1, trackScrollMode, trackLen;
+static int myLen, displayElapsedTime;  
 static long volume, trackTime, currentTime;
 
-static char title[1024];
+static char track[1024];
 
 static tmsgport mport;
 static tmenu    menu;
-static twindow  win;
+static twindow  win, win_remote;
 
 #define G_BACK   1
 #define G_PLAY   2
@@ -40,16 +40,15 @@ static twindow  win;
 #define G_EJECT  6
 #define G_CLOSE  7
 #define G_KILL   8
-
+#define G_RESCAN 9
+#define G_REMOTE_FIRST 10
 
 static void libtw_error(uldat err, uldat err_detail) {
-    fprintf(stderr, "twplayer-remote: libTw error: %s%s\n", TwStrError(err), TwStrErrorDetail(err, err_detail));
+    fprintf(stderr, "twplayer_remote: libTw error: %s%s\n", TwStrError(err), TwStrErrorDetail(err, err_detail));
 }
 
-static const char * remote;
-static const char * const defaultRemote = "org.mpris.MediaPlayer2.audacious";
-static int connect_remote();
 static pl_driver pl = NULL;
+static pl_factories factories = NULL;
 
 TW_DECL_MAGIC(player_magic);
 
@@ -62,29 +61,37 @@ static int init_gui(int argc, char **argv) {
 	    borders = 0;
 	else if (!strcmp(*argv, "-no-border"))
 	    borders = TW_WINDOWFL_BORDERLESS;
-        else
-            remote = *argv;
     }
     
     if (TwCheckMagic(player_magic) && TwOpen(NULL) &&
-	(mport = TwCreateMsgPort(4, "twplayer-remote")) &&
-	(menu = TwCreateMenu
+	(mport = TwCreateMsgPort(15, "twplayer_remote")) &&
+	
+        (menu = TwCreateMenu
 	 (COL(BLACK,WHITE), COL(BLACK,GREEN), COL(HIGH|BLACK,WHITE), COL(HIGH|BLACK,BLACK),
 	  COL(RED,WHITE), COL(RED,GREEN), (byte)0)) &&
 	(TwInfo4Menu(menu, TW_ROW_ACTIVE, 20, " Twin Remote Player ", "ptpppptpppppptpppppp"), TRUE) &&
+
 	(Window=TwWin4Menu(menu)) &&
 	TwItem4Menu(menu, Window, TRUE, 6, " File ") &&
-	(/* TwRow4Menu(Window, G_EJECT, TW_ROW_ACTIVE,  6, " Open "), */
-	 TwRow4Menu(Window, G_CLOSE, TW_ROW_ACTIVE, 14, " Close Client "),
-/*	 TwRow4Menu(Window, G_KILL,  TW_ROW_ACTIVE, 12, " Quit Player "), */ /* quitting xmms gives SEGFAULT... better luck with xmms2/mpris ? */
+	(TwRow4Menu(Window, G_EJECT, TW_ROW_ACTIVE,  6, " Open "),
+	 TwRow4Menu(Window, G_CLOSE, TW_ROW_ACTIVE, 13, " Quit Client "),
+/*	 TwRow4Menu(Window, G_KILL,  TW_ROW_ACTIVE, 13, " Quit Player "), */ /* quitting xmms gives SEGFAULT... better luck with xmms2/mpris ? */
 	 TRUE) &&
+	
+        (win_remote = Window = TwWin4Menu(menu)) &&
+	TwItem4Menu(menu, Window, TRUE, 15, " Media Players ") &&
+	(TwRow4Menu(Window, G_RESCAN, TW_ROW_ACTIVE,  8, " Rescan "),
+	 TwRow4Menu(Window, (udat)0,  TW_ROW_IGNORE, 14, "\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4"),
+	 TRUE) &&
+        
 	TwItem4MenuCommon(menu) &&
+        
 	(win = TwCreateWindow
 	 (15, "twplayer-remote", NULL,
 	  menu, COL(HIGH|YELLOW,HIGH|BLACK), TW_NOCURSOR,
 	  TW_WINDOW_DRAG|TW_WINDOW_CLOSE|TW_WINDOW_WANT_MOUSE|TW_WINDOW_AUTO_KEYS,
 	  TW_WINDOWFL_USEROWS|borders,
-	  mywidth = 20, 4, 0)) &&
+	  myLen = 20, 4, 0)) &&
 	TwCreateButtonGadget
 	(win, 2, 1, " \x17", 0, G_EJECT,
 	 COL(CYAN,HIGH|BLACK), COL(HIGH|WHITE,GREEN), COL(HIGH|BLACK,GREEN),
@@ -119,10 +126,57 @@ static int init_gui(int argc, char **argv) {
     return -1;
 }
 
+static void update_window_title(void) {
+    byte title[20] = "twplayer-remote";
+    size_t len = 15;
+    if (pl && pl->label) {
+        len = min2(strlen(pl->label), sizeof(title) - 9);
+        if (len)
+            memcpy(title + 9, pl->label, len);
+        len += 9;
+    }
+    TwSetTitleWindow(win, (udat)len, title);
+}
+
+static void clear_win_remote(void) {
+    tmenuitem menuitem;
+    unsigned i, n;
+    if (!factories)
+        return;
+    for (i = 0, n = factories->size; i < n; i++) {
+        menuitem = TwFindRowByCodeWindow(win_remote, G_REMOTE_FIRST + i);
+        if (menuitem != TW_NOID)
+            TwDeleteMenuItem(menuitem);
+    }
+    TwFlush();
+}
+
+static void fill_win_remote(void) {
+    char label[40];
+    pl_factory factory;
+    tmenuitem menuitem;
+    unsigned i, n;
+    size_t len;
+    
+    if (!factories)
+        return;
+    for (i = 0, n = factories->size; i < n; i++) {
+        factory = factories->data[i];
+        if (factory->label != NULL) {
+            len = min2(strlen(factory->label), sizeof(label) - 2);
+            memcpy(label + 1, factory->label, len);
+            label[0] = label[len+1] = ' ';
+            
+            TwRow4Menu(win_remote, G_REMOTE_FIRST + i,
+                       TW_ROW_ACTIVE, len + 2, label);
+        }
+    }
+}
+
 /*
- * paint the title
+ * paint the track name
  */
-static void paint_title(void) {
+static void paint_track(void) {
     byte buf[20];
     int len;
     
@@ -130,18 +184,18 @@ static void paint_title(void) {
 
     memset(buf, ' ', 20);
 
-    if (pl && *title) {
-	if (titleXPosition > 0) {
-	    if ((len = 20 - titleXPosition) > 0) {
-		if (len > titleWidth)
-		    len = titleWidth;
-		memcpy(buf + titleXPosition, title, len);
+    if (pl && *track) {
+	if (trackXPosition > 0) {
+	    if ((len = 20 - trackXPosition) > 0) {
+		if (len > trackLen)
+		    len = trackLen;
+		memcpy(buf + trackXPosition, track, len);
 	    }
 	} else {
-	    if ((len = titleWidth + titleXPosition) > 20)
+	    if ((len = trackLen + trackXPosition) > 20)
 		len = 20;
 	    if (len > 0)
-		memcpy(buf, title - titleXPosition, len);
+		memcpy(buf, track - trackXPosition, len);
 	}
     }
     TwSetColTextWindow(win, COL(HIGH|YELLOW,HIGH|BLACK));
@@ -149,13 +203,13 @@ static void paint_title(void) {
 }
     
 /*
- * paint the title, track time, volume.
+ * paint the track name, track time, volume.
  */
 static void paint(void) {
     hwcol col;
     byte buf[24];
     
-    paint_title();
+    paint_track();
 
     TwGotoXYWindow(win, 0, 1);
     if (pl) {
@@ -182,39 +236,39 @@ static void paint(void) {
 }
 
 /*
- * scroll the title
+ * scroll the track
  */
 static void scroll(void) {
     
-    if (titleWidth < mywidth) {
+    if (trackLen < myLen) {
 	/*
-	 * don't scroll if title too small
+	 * don't scroll if track too small
 	 */
-	titleXPosition = (int) (mywidth / 2 - titleWidth / 2);
+	trackXPosition = (int) (myLen / 2 - trackLen / 2);
     } else {
-	titleXPosition -= titleScrollSpeed;
+	trackXPosition -= trackScrollSpeed;
     
-	if (titleScrollMode == 0) {
+	if (trackScrollMode == 0) {
 	    /*
 	     * normal scrolling
 	     */
-	    if (titleScrollSpeed > 0) {
-		if (titleXPosition < -titleWidth)
-		    titleXPosition = mywidth;
+	    if (trackScrollSpeed > 0) {
+		if (trackXPosition < -trackLen)
+		    trackXPosition = myLen;
 	    } else {
-		if (titleXPosition > mywidth)
-		    titleXPosition = -titleWidth;
+		if (trackXPosition > myLen)
+		    trackXPosition = -trackLen;
 	    }
-	} else if (titleScrollMode == 1) {
+	} else if (trackScrollMode == 1) {
 	    /*
 	     * ping pong scrolling
 	     */
-	    if (titleScrollSpeed > 0) {
-		if (titleXPosition < -titleWidth + mywidth - 15)
-		    titleScrollSpeed = -titleScrollSpeed;
+	    if (trackScrollSpeed > 0) {
+		if (trackXPosition < -trackLen + myLen - 15)
+		    trackScrollSpeed = -trackScrollSpeed;
 	    } else {
-		if (titleXPosition > 15) 
-		    titleScrollSpeed = -titleScrollSpeed;
+		if (trackXPosition > 15) 
+		    trackScrollSpeed = -trackScrollSpeed;
 	    }
 	}
     }
@@ -233,39 +287,39 @@ void load_track_info(void)
     len2 = info.title_len;
     
     if (len) {
-        if (len >= sizeof(title)/2)
-            len = sizeof(title)/2 - 1;
+        if (len >= sizeof(track)/2)
+            len = sizeof(track)/2 - 1;
                     
         if (len)
-            memcpy(title, info.artist, len);
+            memcpy(track, info.artist, len);
     }
     if (len && len2) {
-        memcpy(title + len, " - ", 3);
+        memcpy(track + len, " - ", 3);
         len += 3;
     }
     if (len2) {
-        if (len2 >= sizeof(title) - len)
-            len2 = sizeof(title) - len - 1;
+        if (len2 >= sizeof(track) - len)
+            len2 = sizeof(track) - len - 1;
                     
         if (len2) {
-            memcpy(title + len, info.title, len2);
+            memcpy(track + len, info.title, len2);
             len += len2;
         }
     }
     if (!len)
-        memcpy(title, "<<unknown>>", (len = 11));
+        memcpy(track, "<<unknown>>", (len = 11));
 
-    title[len] = '\0';
-    titleWidth = len;
+    track[len] = '\0';
+    trackLen = len;
     trackTime = info.duration;
 #else    
-    const char * track_title = NULL, * track_artist = NULL;
-    size_t track_title_len = 0, track_artist_len = 0;
+    const char * info_title = NULL, * info_artist = NULL;
+    size_t info_title_len = 0, info_artist_len = 0;
     int32_t id = 0, duration = 0;
 
-    long current_track_id = to_int(xmmsc_playback_current_id(conn));
+    long current_info_id = to_int(xmmsc_playback_current_id(conn));
     
-    xmmsc_result_t * res = xmmsc_medialib_get_info(conn, current_track_id);
+    xmmsc_result_t * res = xmmsc_medialib_get_info(conn, current_info_id);
 
     if (res != NULL) {
         xmmsc_result_wait(res);
@@ -274,35 +328,35 @@ void load_track_info(void)
             if (val != NULL) {
                 val = xmmsv_propdict_to_dict(val, NULL); // must call xmmsv_unref() later
 
-                xmmsv_dict_entry_get_string(val, "artist", &track_artist);
-                xmmsv_dict_entry_get_string(val, "title", &track_title);
+                xmmsv_dict_entry_get_string(val, "artist", &info_artist);
+                xmmsv_dict_entry_get_string(val, "title", &info_title);
                 xmmsv_dict_entry_get_int(val, "duration", &duration);
                 xmmsv_dict_entry_get_int(val, "id", &id);
                 
-                track_artist_len = track_artist ? strlen(track_artist) : 0;
-                track_title_len = track_title ? strlen(track_title) : 0;
+                info_artist_len = info_artist ? strlen(info_artist) : 0;
+                info_title_len = info_title ? strlen(info_title) : 0;
                 
-                if (track_artist_len) {
-                    if (track_artist_len >= sizeof(title)/2)
-                        track_artist_len = sizeof(title)/2 - 1;
+                if (info_artist_len) {
+                    if (info_artist_len >= sizeof(title)/2)
+                        info_artist_len = sizeof(title)/2 - 1;
                     
-                    if (track_artist_len)
-                        memcpy(title, track_artist, track_artist_len);
+                    if (info_artist_len)
+                        memcpy(title, info_artist, info_artist_len);
                 }
-                if (track_artist_len && track_title_len) {
-                    memcpy(title + track_artist_len, " - ", 3);
-                    track_artist_len += 3;
+                if (info_artist_len && info_title_len) {
+                    memcpy(title + info_artist_len, " - ", 3);
+                    info_artist_len += 3;
                 }
-                if (track_title_len) {
-                    if (track_title_len >= sizeof(title) - track_artist_len)
-                        track_title_len = sizeof(title) - track_artist_len - 1;
+                if (info_title_len) {
+                    if (info_title_len >= sizeof(title) - info_artist_len)
+                        info_title_len = sizeof(title) - info_artist_len - 1;
                     
-                    if (track_title_len)
-                        memcpy(title + track_artist_len, track_title, track_title_len);
+                    if (info_title_len)
+                        memcpy(title + info_artist_len, info_title, info_title_len);
                 }
-                if (track_artist_len || track_title_len) {
-                    title[track_artist_len + track_title_len] = '\0';
-                    titleWidth = track_artist_len + track_title_len;
+                if (info_artist_len || info_title_len) {
+                    title[info_artist_len + info_title_len] = '\0';
+                    trackLen = info_artist_len + info_title_len;
                 }
                 xmmsv_unref(val);
             }
@@ -310,8 +364,8 @@ void load_track_info(void)
         xmmsc_result_unref(res);
     }
     trackTime = duration; /* duration/1000=track length in seconds */
-    if (!track_artist_len && !track_title_len)
-        memcpy(title, "<<unknown>>", (titleWidth = 11) + 1 /* for final '\0' */);
+    if (!info_artist_len && !info_title_len)
+        memcpy(title, "<<unknown>>", (trackLen = 11) + 1 /* for final '\0' */);
 #endif
 }
 
@@ -329,17 +383,40 @@ static void receive(void) {
     }
 }
 
-static int connect_remote() {
-    if (!pl)
-        pl = mpris2_driver_new(remote ? remote : defaultRemote);
+static int connect_remote(unsigned index) {
+    if (!pl && factories && index < factories->size) {
+        pl = call_factory(factories->data[index]);
+        update_window_title();
+    }
+
     if (pl)
         receive();
     
     return pl ? 0 : -1;
 }
 
+static void disconnect_remote() {
+    if (pl) {
+        pl->del(pl);
+        pl = NULL;
+        update_window_title();
+    }
+}
+
+static void scan_remote(void) {
+    disconnect_remote();
+    if (factories || (factories = new_factories())) {
+        clear_win_remote();
+        clear_factories(factories);
+        mpris2_list_factories(factories);
+        fill_win_remote();
+    }
+    connect_remote(0);
+}
+
 static void event_menu(tevent_menu event) {
-    switch (event->Code) {
+    udat code = event->Code;
+    switch (code) {
       case G_EJECT:
 	break;
       case G_CLOSE:
@@ -351,7 +428,14 @@ static void event_menu(tevent_menu event) {
             pl = NULL;
 	}
 	break;
+      case G_RESCAN:
+	scan_remote();
+	break;
       default:
+        if (code >= G_REMOTE_FIRST && factories && code - G_REMOTE_FIRST < factories->size) {
+            disconnect_remote();
+            connect_remote(code - G_REMOTE_FIRST);
+        }
 	break;
     }
 }
@@ -361,7 +445,7 @@ static void event_menu(tevent_menu event) {
  *
  */
 static void event_gadget(tevent_gadget event) {
-    if (!pl && connect_remote() != 0)
+    if (!pl)
         return;
     
     switch (event->Code) {
@@ -389,7 +473,7 @@ static void event_gadget(tevent_gadget event) {
 }
 
 static void event_mouse(tevent_mouse event) {
-    if (!pl && connect_remote() != 0)
+    if (!pl)
 	return;
 
     if (event->Code == PRESS_LEFT && event->W == win && event->Y == 1) {
@@ -425,7 +509,7 @@ static void event_mouse(tevent_mouse event) {
 	if (event->Y == 1 && event->X <= 12)
 	    displayElapsedTime ^= 1;
 	else if (event->Y == 0)
-	    titleScrollMode ^= 1;
+	    trackScrollMode ^= 1;
     } else if (event->Code == PRESS_MIDDLE && event->W == win) {
 	/*
 	 * middle mouse button:
@@ -520,8 +604,10 @@ static void main_loop(void) {
 }
 
 int main(int argc, char **argv) {
-    if (init_gui(argc, argv) == 0 && connect_remote() == 0)
+    if (init_gui(argc, argv) == 0) {
+        scan_remote();
 	main_loop();
+    }
     
     return 0;
 }
