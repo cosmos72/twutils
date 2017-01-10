@@ -45,6 +45,7 @@ pl_driver call_factory(pl_factory element)
         pl = element->constructor(element->constructor_arg);
         init_driver(pl, element->label);
     }
+    return pl;
 }
 
 void del_factory(pl_factory element)
