@@ -366,6 +366,11 @@ cleanup:
     return NULL;
 }
 
+static void derror_check_fatal(mpris2_driver pl) {
+    if (dbus_error_has_name(&pl->error, DBUS_ERROR_SERVICE_UNKNOWN))
+        pl->base.fatal_error = 1;
+}
+
 static DBusMessage * dcall_exec_get_reply(mpris2_driver pl, DBusMessage * message) {
     DBusMessage *reply = NULL;
     int reply_timeout = -1;
@@ -374,12 +379,14 @@ static DBusMessage * dcall_exec_get_reply(mpris2_driver pl, DBusMessage * messag
     reply = dbus_connection_send_with_reply_and_block(pl->connection, message, reply_timeout, &pl->error);
     
     if (dbus_error_is_set(&pl->error)) {
+        derror_check_fatal(pl);
         fprintf(stderr, "D-Bus: method invocation %s %s %s.%s returned error %s: %s\n",
                 pl->dest, pl->path, dbus_message_get_interface(message), dbus_message_get_member(message), pl->error.name, pl->error.message);
         if (reply)
             dbus_message_unref(reply); 
         reply = NULL;
     }
+    dbus_error_free(&pl->error);
     return reply;
 }
 
@@ -511,6 +518,7 @@ static void mpris2_del(pl_driver pl_base)
 
 static const struct pl_driver_s mpris2_funcs = {
     NULL,
+    0,
     mpris2_del,
     mpris2_play,
     mpris2_pause,
@@ -530,20 +538,24 @@ static int ddriver_init(mpris2_driver pl, const char *dest) {
     
     pl->connection = dbus_bus_get(DBUS_BUS_SESSION, &pl->error);
     if (pl->connection == NULL) {
-        fprintf(stderr, "Failed to open connection to D-Bus session message bus: %s\n",
-                pl->error.message);
-        goto fail;
+        fprintf(stderr, "Failed to open connection to D-Bus session message bus: %s %s\n",
+                pl->error.name, pl->error.message);
+        error = -1;
+        goto cleanup;
     }
     
     if (!dbus_validate_bus_name(dest, &pl->error)) {
-        fprintf(stderr, "invalid D-Bus destination '%s'\n", dest);
-        goto fail;
+        fprintf(stderr, "invalid D-Bus destination '%s': %s %s\n", dest, pl->error.name, pl->error.message);
+        error = -1;
+        goto cleanup;
     }
     pl->dest = strdup_or_error(dest, & error); /* safety: make our own copy of dest */
-    return error;
     
-fail:
-    return -1;
+cleanup:
+    if (error)
+        derror_check_fatal(pl);
+    dbus_error_free(&pl->error);
+    return error;
 }
 
 pl_driver mpris2_new(const char *dest) {

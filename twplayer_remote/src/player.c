@@ -32,6 +32,10 @@ static tmsgport mport;
 static tmenu    menu;
 static twindow  win, win_remote;
 
+static int connect_remote(unsigned index);
+static void disconnect_remote(void);
+static void scan_remote(void);
+
 #define G_BACK   1
 #define G_PLAY   2
 #define G_PAUSE  3
@@ -93,7 +97,7 @@ static int init_gui(int argc, char **argv) {
 	  TW_WINDOWFL_USEROWS|borders,
 	  myLen = 20, 4, 0)) &&
 	TwCreateButtonGadget
-	(win, 2, 1, " \x17", 0, G_EJECT,
+	(win, 2, 1, "\x0E!", 0, G_RESCAN,
 	 COL(CYAN,HIGH|BLACK), COL(HIGH|WHITE,GREEN), COL(HIGH|BLACK,GREEN),
 	 16, 2) &&
 	TwCreateButtonGadget
@@ -380,6 +384,10 @@ static void receive(void) {
 	currentTime = to_int(xmmsc_playback_playtime(conn));
 #endif
         load_track_info();
+        
+        if (pl->fatal_error) {
+            scan_remote();
+        }
     }
 }
 
@@ -395,7 +403,7 @@ static int connect_remote(unsigned index) {
     return pl ? 0 : -1;
 }
 
-static void disconnect_remote() {
+static void disconnect_remote(void) {
     if (pl) {
         pl->del(pl);
         pl = NULL;
@@ -466,6 +474,9 @@ static void event_gadget(tevent_gadget event) {
 	break;
       case G_EJECT:
         /* TODO */
+	break;
+      case G_RESCAN:
+        scan_remote();
 	break;
       default:
 	break;

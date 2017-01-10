@@ -15,6 +15,7 @@ struct pl_trackinfo_s {
 
 struct pl_driver_s {
     char * label;
+    unsigned fatal_error;
     void (*del)(pl_driver pl);
     void (*play)(pl_driver pl);
     void (*pause)(pl_driver pl);
