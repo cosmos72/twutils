@@ -31,8 +31,8 @@
 
 KStats::KStats(){
 
-  error_flag = FALSE;
-//  data.setAutoDelete(TRUE);
+  error_flag = tfalse;
+//  data.setAutoDelete(ttrue);
 
 }
 
@@ -118,7 +118,7 @@ CALCAMNT KStats::median(){
   bound = list.count();
 
   if (bound == 0){
-    error_flag = TRUE;
+    error_flag = ttrue;
     return 0.0;
   }
   
@@ -187,7 +187,7 @@ CALCAMNT KStats::mean(){
   CALCAMNT result = 0.0;
 
   if(data.count() == 0){
-    error_flag = TRUE;
+    error_flag = ttrue;
     return 0.0;
   }
   
@@ -206,7 +206,7 @@ CALCAMNT KStats::std(){
   CALCAMNT result = 0.0;
 
   if(data.count() == 0){
-    error_flag = TRUE;
+    error_flag = ttrue;
 
 #ifdef DEBUG_STATS
     printf("set stats error\n");
@@ -234,7 +234,7 @@ CALCAMNT KStats::sample_std(){
   CALCAMNT result = 0.0;
 
   if(data.count() < 2 ){
-    error_flag = TRUE;
+    error_flag = ttrue;
     return 0.0;
   }
   
@@ -257,7 +257,7 @@ bool KStats::error(){
 
   bool value;
   value = error_flag;
-  error_flag = FALSE;
+  error_flag = tfalse;
 
   return value;
 

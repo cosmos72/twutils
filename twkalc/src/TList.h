@@ -102,7 +102,7 @@ class TListV {
     inline TT getNext( )    const	{ return Current ? Current->Next : Current; }
     inline TT setCurrent( TT curr )	{ return Current = curr; }
     inline void *getV( TT curr ) const	{ return curr ? (void *)curr->V : (void *)0; }
-    inline bool  deleteTT( )		{ while (deleteTT(getHead())) ; return TRUE; }
+    inline bool  deleteTT( )		{ while (deleteTT(getHead())) ; return ttrue; }
     void insert(const void *d, TT _Prev, TT _Next)
     {
 	TT node = new s_TT();
