@@ -79,7 +79,7 @@ static int init_gui(int argc, char **argv) {
 	(xmms_MsgPort = TwCreateMsgPort(4, "twxmms2")) &&
 	(xmms_Menu = TwCreateMenu
 	 (TCOL(tblack,twhite), TCOL(tblack,tgreen), TCOL(thigh|tblack,twhite), TCOL(thigh|tblack,tblack),
-	  TCOL(RED,twhite), TCOL(RED,tgreen), (byte)0)) &&
+	  TCOL(tred,twhite), TCOL(tred,tgreen), (byte)0)) &&
 	(TwInfo4Menu(xmms_Menu, TW_ROW_ACTIVE, 19, " Twin Xmms2 Client ", "ptpppptppppptpppppp"), TRUE) &&
 	(Window=TwWin4Menu(xmms_Menu)) &&
 	TwItem4Menu(xmms_Menu, Window, TRUE, 6, " File ") &&
@@ -90,35 +90,35 @@ static int init_gui(int argc, char **argv) {
 	TwItem4MenuCommon(xmms_Menu) &&
 	(xmms_Win = TwCreateWindow
 	 (7, "twxmms2", NULL,
-	  xmms_Menu, TCOL(thigh|YELLOW,thigh|tblack), TW_NOCURSOR,
+	  xmms_Menu, TCOL(thigh|tyellow,thigh|tblack), TW_NOCURSOR,
 	  TW_WINDOW_DRAG|TW_WINDOW_CLOSE|TW_WINDOW_WANT_MOUSE|TW_WINDOW_AUTO_KEYS,
 	  TW_WINDOWFL_USEROWS|borders,
 	  mywidth = 20, 4, 0)) &&
         /*
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, " \x17", 0, G_EJECT,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 16, 2) &&
          */
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, "\x10|", 0, G_SKIP,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 15, 2) &&
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, "\xDE\xDD", 0, G_STOP,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 11, 2) &&
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, "\xFE\xFE", 0, G_PAUSE,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 8, 2) &&
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, " \x10", 0, G_PLAY,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 5, 2) &&
 	TwCreateButtonGadget
 	(xmms_Win, 2, 1, "|\x11", 0, G_BACK,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 1, 2)
 	) {
     TwMapWindow(xmms_Win, TwFirstScreen());
@@ -152,8 +152,8 @@ static void paint_title(void) {
       if (len > 0) memcpy(buf, title - titleXPosition, len);
     }
   }
-  TwSetColTextWindow(xmms_Win, TCOL(thigh | YELLOW, thigh | tblack));
-  TwWriteAsciiWindow(xmms_Win, 20, buf);
+  TwSetColTextWindow(xmms_Win, TCOL(thigh | tyellow, thigh | tblack));
+  TwWriteCharsetWindow(xmms_Win, 20, buf);
 }
 
 /*
@@ -176,17 +176,17 @@ static void paint(void) {
     memset(buf, ' ', 20);
   }
   TwSetColTextWindow(xmms_Win, TCOL(thigh | twhite, thigh | tblack));
-  TwWriteAsciiWindow(xmms_Win, 14, buf);
+  TwWriteCharsetWindow(xmms_Win, 14, buf);
   if (volume < 50)
-    col = TCOL(thigh | CYAN, thigh | tblack);
+    col = TCOL(thigh | tcyan, thigh | tblack);
   else if (volume < 75)
     col = TCOL(thigh | tgreen, thigh | tblack);
   else if (volume < 90)
-    col = TCOL(thigh | YELLOW, thigh | tblack);
+    col = TCOL(thigh | tyellow, thigh | tblack);
   else
-    col = TCOL(thigh | RED, thigh | tblack);
+    col = TCOL(thigh | tred, thigh | tblack);
   TwSetColTextWindow(xmms_Win, col);
-  TwWriteAsciiWindow(xmms_Win, 6, buf + 14);
+  TwWriteCharsetWindow(xmms_Win, 6, buf + 14);
 }
 
 /*

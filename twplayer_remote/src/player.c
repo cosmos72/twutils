@@ -73,7 +73,7 @@ static int init_gui(int argc, char **argv) {
 
         (menu = TwCreateMenu
 	 (TCOL(tblack,twhite), TCOL(tblack,tgreen), TCOL(thigh|tblack,twhite), TCOL(thigh|tblack,tblack),
-	  TCOL(RED,twhite), TCOL(RED,tgreen), (byte)0)) &&
+	  TCOL(tred,twhite), TCOL(tred,tgreen), (byte)0)) &&
 	(TwInfo4Menu(menu, TW_ROW_ACTIVE, 20, " Twin Remote Player ", "ptpppptpppppptpppppp"), TRUE) &&
 
 	(Window=TwWin4Menu(menu)) &&
@@ -93,33 +93,33 @@ static int init_gui(int argc, char **argv) {
 
 	(win = TwCreateWindow
 	 (15, "twplayer-remote", NULL,
-	  menu, TCOL(thigh|YELLOW,thigh|tblack), TW_NOCURSOR,
+	  menu, TCOL(thigh|tyellow,thigh|tblack), TW_NOCURSOR,
 	  TW_WINDOW_DRAG|TW_WINDOW_CLOSE|TW_WINDOW_WANT_MOUSE|TW_WINDOW_AUTO_KEYS,
 	  TW_WINDOWFL_USEROWS|borders,
 	  myLen = 20, 4, 0)) &&
 	TwCreateButtonGadget
 	(win, 2, 1, "\x0E!", 0, G_RESCAN,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 16, 2) &&
 	TwCreateButtonGadget
 	(win, 2, 1, "\x10|", 0, G_NEXT,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 13, 2) &&
 	TwCreateButtonGadget
 	(win, 2, 1, "\xDB\xDB", 0, G_STOP,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 10, 2) &&
 	TwCreateButtonGadget
 	(win, 2, 1, "||", 0, G_PAUSE,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 7, 2) &&
 	TwCreateButtonGadget
 	(win, 2, 1, " \x10", 0, G_PLAY,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 4, 2) &&
 	TwCreateButtonGadget
 	(win, 2, 1, "|\x11", 0, G_BACK,
-	 TCOL(CYAN,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
+	 TCOL(tcyan,thigh|tblack), TCOL(thigh|twhite,tgreen), TCOL(thigh|tblack,tgreen),
 	 1, 2)
 	) {
     TwMapWindow(win, TwFirstScreen());
@@ -194,8 +194,8 @@ static void paint_track(void) {
       if (len > 0) memcpy(buf, track - trackXPosition, len);
     }
   }
-  TwSetColTextWindow(win, TCOL(thigh | YELLOW, thigh | tblack));
-  TwWriteAsciiWindow(win, 20, buf);
+  TwSetColTextWindow(win, TCOL(thigh | tyellow, thigh | tblack));
+  TwWriteCharsetWindow(win, 20, buf);
 }
 
 /*
@@ -218,17 +218,17 @@ static void paint(void) {
     memset(buf, ' ', 20);
   }
   TwSetColTextWindow(win, TCOL(thigh | twhite, thigh | tblack));
-  TwWriteAsciiWindow(win, 14, buf);
+  TwWriteCharsetWindow(win, 14, buf);
   if (volume < 50)
-    col = TCOL(thigh | CYAN, thigh | tblack);
+    col = TCOL(thigh | tcyan, thigh | tblack);
   else if (volume < 75)
     col = TCOL(thigh | tgreen, thigh | tblack);
   else if (volume < 90)
-    col = TCOL(thigh | YELLOW, thigh | tblack);
+    col = TCOL(thigh | tyellow, thigh | tblack);
   else
-    col = TCOL(thigh | RED, thigh | tblack);
+    col = TCOL(thigh | tred, thigh | tblack);
   TwSetColTextWindow(win, col);
-  TwWriteAsciiWindow(win, 6, buf + 14);
+  TwWriteCharsetWindow(win, 6, buf + 14);
 }
 
 /*
