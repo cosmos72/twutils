@@ -14,7 +14,7 @@ AC_TYPE_LONG_DOUBLE
 AC_CHECK_HEADERS([ieeefp.h])
 AC_CHECK_FUNCS([isinf])
 AC_CHECK_LIB(m, sqrt)
-AC_CHECK_LIB(Tw, Tw_Open)
+AC_CHECK_LIB(tw, Tw_Open)
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
