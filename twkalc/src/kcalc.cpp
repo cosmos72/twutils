@@ -193,6 +193,8 @@ QtCalculator ::QtCalculator(const char *name) : TWindow(Menu, name) {
   this->setColors(0x60, 0, 0, 0, 0, 0, TCOL(tgreen, twhite),
                   TCOL(tgreen, twhite), 0, 0);
   this->gotoXY(10, 0);
+  /* default charset is IBM-437.
+   * Use it to draw some lines around the displayed number */
   this->writeCharset(
       "\xDA\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4"
       "\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xC4\xBF");

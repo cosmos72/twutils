@@ -80,13 +80,13 @@ static int init_gui(int argc, char **argv) {
 	(xmms_Menu = TwCreateMenu
 	 (TCOL(tblack,twhite), TCOL(tblack,tgreen), TCOL(thigh|tblack,twhite), TCOL(thigh|tblack,tblack),
 	  TCOL(tred,twhite), TCOL(tred,tgreen), (byte)0)) &&
-	(TwInfo4Menu(xmms_Menu, TW_ROW_ACTIVE, 19, " Twin Xmms2 Client ", "ptpppptppppptpppppp"), TRUE) &&
+	(TwInfo4Menu(xmms_Menu, TW_ROW_ACTIVE, 19, " Twin Xmms2 Client ", "ptpppptppppptpppppp"), ttrue) &&
 	(Window=TwWin4Menu(xmms_Menu)) &&
-	TwItem4Menu(xmms_Menu, Window, TRUE, 6, " File ") &&
+	TwItem4Menu(xmms_Menu, Window, ttrue, 6, " File ") &&
 	(/* TwRow4Menu(Window, G_EJECT, TW_ROW_ACTIVE,  6, " Open "), */
 	 TwRow4Menu(Window, G_CLOSE, TW_ROW_ACTIVE, 14, " Close Client "),
 /*	 TwRow4Menu(Window, G_KILL,  TW_ROW_ACTIVE, 12, " Quit Xmms2 "), */ /* quitting xmms gives SEGFAULT... better luck with xmms2 ? */
-	 TRUE) &&
+	 ttrue) &&
 	TwItem4MenuCommon(xmms_Menu) &&
 	(xmms_Win = TwCreateWindow
 	 (7, "twxmms2", NULL,
@@ -125,9 +125,9 @@ static int init_gui(int argc, char **argv) {
     TwFlush();
 
     connectXmms();
-    return TRUE;
+    return ttrue;
   }
-  return FALSE;
+  return tfalse;
 }
 
 /*
@@ -548,7 +548,7 @@ static void main_loop(void) {
   paint();
 
   while (!TwInPanic()) {
-    while ((Msg = TwReadMsg(FALSE))) {
+    while ((Msg = TwReadMsg(tfalse))) {
       if (Msg->Type == TW_MSG_WIDGET_GADGET && Msg->Event.EventGadget.Code == 0)
         return;
 
