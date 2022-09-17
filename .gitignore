@@ -7,3 +7,9 @@
 *.log
 build*
 config.status
+config.log
+.deps
+stamp-h1
+Makefile
+/twxmms2/config.h
+/twxmms2/src/twxmms2
